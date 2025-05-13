@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="he">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>משחק זיכרון חשבוני</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-image: url('/api/placeholder/1600/900');
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            text-align: center;
+            direction: rtl;
+            margin: 0;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        /* הוספת שכבת אפקט על התמונה כדי לשפר את הקריאות */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.85);
+            z-index: -1;
+        }
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+            background: linear-gradient(to right, #3498db, #2980b9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: inline-block;
+        }
+        .logo {
+            max-width: 100px;
+            margin: 10px auto;
+        }
+        .game-info {
+            margin-bottom: 20px;
+            font-size: 1.2rem;
+        }
+        .welcome-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 60vh;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .game-container {
+            display: none;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        .player-section {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        select, button, input {
+            padding: 8px 15px;
+            margin: 5px;
+            font-size: 1rem;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: white;
+            cursor: pointer;
+        }
+        input {
+            min-width: 200px;
+        }
+        #player-display {
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            transition: all 0.3s;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
+        }
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .card {
+            height: 120px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            user-select: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            border: 2px solid transparent;
+        }
+        .card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+            border-color: #f1c40f;
+        }
+        .card-content {
+            display: none;
+            font-weight: bold;
+        }
+        .flipped .card-content {
+            display: block;
+        }
+        .flipped {
+            background: white;
+            color: #2c3e50;
+            transform: rotateY(0deg);
+            border: 2px solid #3498db;
+        }
+        .matched {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+            color: white;
+            cursor: default;
+            border: 2px solid #f1c40f;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(46, 204, 113, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+        }
+        .stats {
+            margin-top: 20px;
+            font-size: 1.1rem;
+        }
+        .message {
+            margin-top: 10px;
+            font-weight: bold;
+            min-height: 25px;
+        }
+        @media (max-width: 600px) {
+            .game-board {
+                grid-template-columns: repeat(3, 1fr);
+            }
+            .card {
+                height: 100px;
+                font-size: 1.2rem;
+            }
+        }
+        
+        /* תוספת לאנימציית החגיגה */
+        .celebration-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            display: none;
+        }
+        
+        /* סגנון הבלונים */
+        .balloon {
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            border-radius: 50%;
+            animation: float 4s ease-in-out infinite;
+            opacity: 0;
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) scale(0.8);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(1.2);
+                opacity: 0;
+            }
+        }
+        
+        /* סגנון לכפיים מוחאות */
+        .clapping-hands {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 60px;
+            animation: clap 0.5s infinite alternate;
+            display: none;
+        }
+        
+        @keyframes clap {
+            0% { transform: translateX(-50%) scale(1); }
+            100% { transform: translateX(-50%) scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- מסך הפתיחה -->
+    <div class="welcome-screen" id="welcome-screen">
+        <div class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#3498db;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#2980b9;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="url(#logoGradient)" />
+                <text x="50" y="40" fill="white" font-size="24" text-anchor="middle" font-weight="bold" filter="drop-shadow(1px 1px 1px rgba(0,0,0,0.3))">1+2</text>
+                <text x="50" y="70" fill="white" font-size="24" text-anchor="middle" font-weight="bold" filter="drop-shadow(1px 1px 1px rgba(0,0,0,0.3))">= 3</text>
+            </svg>
+        </div>
+        <h1>משחק זיכרון חשבוני</h1>
+        <div class="game-info">התאם בין תרגילים לתוצאות שלהם</div>
+        
+        <div class="player-section">
+            <input type="text" id="player-name" placeholder="הכנס את שמך" maxlength="20">
+        </div>
+        <div>
+            <select id="difficulty">
+                <option value="easy">קל</option>
+                <option value="medium">בינוני</option>
+                <option value="hard">קשה</option>
+            </select>
+        </div>
+        <button id="start-btn">התחל משחק</button>
+    </div>
+    
+    <!-- מסך המשחק -->
+    <div class="game-container" id="game-container">
+        <div class="logo">
+            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="logoGradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#3498db;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#2980b9;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle cx="50" cy="50" r="45" fill="url(#logoGradient2)" />
+                <text x="50" y="40" fill="white" font-size="24" text-anchor="middle" font-weight="bold" filter="drop-shadow(1px 1px 1px rgba(0,0,0,0.3))">1+2</text>
+                <text x="50" y="70" fill="white" font-size="24" text-anchor="middle" font-weight="bold" filter="drop-shadow(1px 1px 1px rgba(0,0,0,0.3))">= 3</text>
+            </svg>
+        </div>
+        <h1>משחק זיכרון חשבוני</h1>
+        
+        <div class="stats">
+            <div id="player-display"></div>
+            <div>ניסיונות: <span id="attempts">0</span></div>
+            <div>זוגות שנמצאו: <span id="matches">0</span> מתוך <span id="total-pairs">0</span></div>
+        </div>
+        
+        <div class="message" id="message"></div>
+        
+        <div class="game-board" id="game-board"></div>
+        
+        <div class="controls">
+            <button id="play-again-btn">משחק חדש</button>
+        </div>
+    </div>
+    
+    <!-- מכולה לאנימציית חגיגת הניצחון -->
+    <div class="celebration-container" id="celebration-container"></div>
+    
+    <!-- ידיים מוחאות כפיים -->
+    <div class="clapping-hands" id="clapping-hands">👏</div>
+
+    <script>
+        // Variables to track game state
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let attempts = 0;
+        let totalPairs = 0;
+        let canFlip = true;
+        
+        // Elements
+        const welcomeScreen = document.getElementById('welcome-screen');
+        const gameContainer = document.getElementById('game-container');
+        const gameBoard = document.getElementById('game-board');
+        const startBtn = document.getElementById('start-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const difficultySelect = document.getElementById('difficulty');
+        const playerNameInput = document.getElementById('player-name');
+        const playerDisplayElement = document.getElementById('player-display');
+        const attemptsElement = document.getElementById('attempts');
+        const matchesElement = document.getElementById('matches');
+        const totalPairsElement = document.getElementById('total-pairs');
+        const messageElement = document.getElementById('message');
+        const celebrationContainer = document.getElementById('celebration-container');
+        const clappingHands = document.getElementById('clapping-hands');
+        
+        // Event listeners
+        startBtn.addEventListener('click', () => {
+            // בדיקה אם המשתמש הכניס שם
+            const playerName = playerNameInput.value.trim();
+            if (!playerName) {
+                alert('אנא הכנס את שמך לפני תחילת המשחק');
+                return;
+            }
+            
+            // מעבר למסך המשחק
+            welcomeScreen.style.display = 'none';
+            gameContainer.style.display = 'block';
+            
+            // התחלת המשחק
+            startGame();
+        });
+        
+        playAgainBtn.addEventListener('click', startGame);
+        
+        // פונקציה ליצירת בלונים לחגיגה
+        function createBalloons() {
+            celebrationContainer.innerHTML = '';
+            celebrationContainer.style.display = 'block';
+            
+            const colors = ['#3498db', '#e74c3c', '#2ecc71', '#f1c40f', '#9b59b6', '#1abc9c'];
+            
+            // יצירת 30 בלונים
+            for (let i = 0; i < 30; i++) {
+                const balloon = document.createElement('div');
+                balloon.className = 'balloon';
+                balloon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                // מיקום אקראי בציר האופקי
+                const left = Math.random() * 100;
+                balloon.style.left = `${left}%`;
+                
+                // תזמון האנימציה אקראי
+                const delay = Math.random() * 3;
+                balloon.style.animation = `float ${4 + Math.random() * 4}s ease-in-out ${delay}s infinite`;
+                
+                celebrationContainer.appendChild(balloon);
+            }
+            
+            // הפעלת אנימציית כפיים מוחאות
+            clappingHands.style.display = 'block';
+            
+            // ניקוי האנימציה אחרי 5 שניות
+            setTimeout(() => {
+                celebrationContainer.style.display = 'none';
+                clappingHands.style.display = 'none';
+            }, 5000);
+        }
+        
+        // פונקציה לחגיגת נצחון
+        function celebrateWin() {
+            createBalloons();
+        }
+        
+        // Generate math problems based on difficulty
+        function generateMathProblems(difficulty) {
+            const problems = [];
+            let count = 0;
+            
+            switch (difficulty) {
+                case 'easy':
+                    // Simple matching numbers 1-10
+                    for (let i = 1; i <= 6; i++) {
+                        const number = i;
+                        problems.push({ number });
+                    }
+                    break;
+                case 'medium':
+                    // Numbers 1-12
+                    for (let i = 1; i <= 8; i++) {
+                        const number = i;
+                        problems.push({ number });
+                    }
+                    break;
+                case 'hard':
+                    // Numbers 1-15
+                    for (let i = 1; i <= 10; i++) {
+                        const number = i;
+                        problems.push({ number });
+                    }
+                    break;
+            }
+            
+            totalPairs = problems.length;
+            return problems;
+        }
+        
+        // Create and shuffle cards
+        function createCards(problems) {
+            const cardData = [];
+            
+            problems.forEach(({ number }) => {
+                // First card shows the number
+                cardData.push({ content: number.toString(), type: 'number', match: number });
+                
+                // Second card shows the same number, but with a different style
+                cardData.push({ content: number.toString(), type: 'duplicate', match: number });
+            });
+            
+            // Shuffle cards
+            for (let i = cardData.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cardData[i], cardData[j]] = [cardData[j], cardData[i]];
+            }
+            
+            return cardData;
+        }
+        
+        // Start a new game
+        function startGame() {
+            // Reset game state
+            gameBoard.innerHTML = '';
+            flippedCards = [];
+            matchedPairs = 0;
+            attempts = 0;
+            canFlip = true;
+            
+            // אתחול מחדש של הצגת חגיגת הנצחון
+            celebrationContainer.style.display = 'none';
+            clappingHands.style.display = 'none';
+            
+            // Update UI
+            attemptsElement.textContent = attempts;
+            messageElement.textContent = '';
+            
+            // Update player name display
+            const playerName = playerNameInput.value.trim();
+            playerDisplayElement.textContent = `שחקן: ${playerName}`;
+            
+            // Get difficulty and generate problems
+            const difficulty = difficultySelect.value;
+            const problems = generateMathProblems(difficulty);
+            cards = createCards(problems);
+            
+            // Update total pairs display
+            totalPairsElement.textContent = totalPairs;
+            matchesElement.textContent = matchedPairs;
+            
+            // Set grid columns based on card count
+            const columns = difficulty === 'easy' ? 4 : (difficulty === 'medium' ? 4 : 5);
+            gameBoard.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+            
+            // Create and add cards to the board
+            cards.forEach((card, index) => {
+                const cardElement = document.createElement('div');
+                cardElement.className = 'card';
+                cardElement.dataset.index = index;
+                
+                const cardContent = document.createElement('div');
+                cardContent.className = 'card-content';
+                cardContent.textContent = card.content;
+                
+                cardElement.appendChild(cardContent);
+                cardElement.addEventListener('click', () => flipCard(index));
+                
+                gameBoard.appendChild(cardElement);
+            });
+        }
+        
+        // Handle card flipping
+        function flipCard(index) {
+            const cardElement = document.querySelector(`[data-index="${index}"]`);
+            
+            // Check if card can be flipped
+            if (!canFlip || cardElement.classList.contains('flipped') || cardElement.classList.contains('matched')) {
+                return;
+            }
+            
+            // Flip card
+            cardElement.classList.add('flipped');
+            flippedCards.push({ index, card: cards[index] });
+            
+            // Check for match when two cards are flipped
+            if (flippedCards.length === 2) {
+                canFlip = false;
+                attempts++;
+                attemptsElement.textContent = attempts;
+                
+                const [card1, card2] = flippedCards;
+                
+                // Check if cards match
+                if (card1.card.match === card2.card.match) {
+                    // Match found
+                    setTimeout(() => {
+                        const card1Element = document.querySelector(`[data-index="${card1.index}"]`);
+                        const card2Element = document.querySelector(`[data-index="${card2.index}"]`);
+                        
+                        card1Element.classList.add('matched');
+                        card2Element.classList.add('matched');
+                        
+                        matchedPairs++;
+                        matchesElement.textContent = matchedPairs;
+                        
+                        // Check for game completion
+                        if (matchedPairs === totalPairs) {
+                            const playerName = playerNameInput.value.trim();
+                            messageElement.textContent = `כל הכבוד ${playerName}! סיימת את המשחק!`;
+                            
+                            // הפעלת חגיגת הנצחון
+                            celebrateWin();
+                        }
+                        
+                        flippedCards = [];
+                        canFlip = true;
+                    }, 500);
+                } else {
+                    // No match
+                    setTimeout(() => {
+                        const card1Element = document.querySelector(`[data-index="${card1.index}"]`);
+                        const card2Element = document.querySelector(`[data-index="${card2.index}"]`);
+                        
+                        card1Element.classList.remove('flipped');
+                        card2Element.classList.remove('flipped');
+                        
+                        flippedCards = [];
+                        canFlip = true;
+                    }, 1000);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
